@@ -130,26 +130,6 @@ descriptionShow(train, test)
 
 
 # """
-# It's now possible to visualize our data points. Note that the deviation as well as the size of the clusters imply little
-# information  in t-SNE.
-# """
-# output_notebook()
-# plot_tfidf = bp.figure(plot_width=700, plot_height=600,
-#                        title="tf-idf clustering of the item description",
-#     tools="pan,wheel_zoom,box_zoom,reset,hover,previewsave",
-#     x_axis_type=None, y_axis_type=None, min_border=1)
-# combined_sample.reset_index(inplace=True, drop=True)
-# tfidf_df = pd.DataFrame(tsne_tfidf, columns=['x', 'y'])
-# tfidf_df['description'] = combined_sample['item_description']
-# tfidf_df['tokens'] = combined_sample['tokens']
-# tfidf_df['category'] = combined_sample['general_cat']
-#
-# plot_tfidf.scatter(x='x', y='y', source=tfidf_df, alpha=0.7)
-# hover = plot_tfidf.select(dict(type=HoverTool))
-# hover.tooltips={"description": "@description", "tokens": "@tokens", "category":"@category"}
-# show(plot_tfidf)
-#
-# """
 # # K-Means Clustering
 # K-means clustering obejctive is to minimize the average squared Euclidean distance of the document / description from
 # their cluster centroids.

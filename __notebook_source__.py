@@ -533,12 +533,9 @@ vectorizer = TfidfVectorizer(min_df=10,
 all_desc = np.append(train['item_description'].values, test['item_description'].values)
 vz = vectorizer.fit_transform(list(all_desc))
 
-
 # vz is a tfidf matrix where:
 # * the number of rows is the total number of descriptions
 # * the number of columns is the total number of unique tokens across the descriptions
-
-# In[ ]:
 
 #  create a dictionary mapping the tokens to their tfidf values
 tfidf = dict(zip(vectorizer.get_feature_names(), vectorizer.idf_))

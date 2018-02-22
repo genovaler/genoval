@@ -5,6 +5,7 @@ import plotly.offline as py
 import plotly.plotly as pp
 import matplotlib.pyplot as plt
 import numpy as np
+from bokeh.models import HoverTool
 from wordcloud import WordCloud
 import pandas as pd
 from nltk import word_tokenize, sent_tokenize
@@ -13,6 +14,8 @@ from nltk.corpus import stopwords
 from sklearn.feature_extraction import stop_words
 from category import split_cat
 from sklearn.feature_extraction.text import TfidfVectorizer
+import bokeh.plotting as bp
+from bokeh.plotting import figure, show, output_notebook
 
 
 def descriptionShow(train, test):
@@ -183,29 +186,30 @@ def descriptionShow(train, test):
                                  max_features=180000,
                                  tokenizer=tokenize,
                                  ngram_range=(1, 2))
-    all_desc = np.append(train['item_description'].values, test['item_description'].values)
-    """"
-    vz is a tfidf matrix where:
-    * the number of rows is the total number of descriptions
-    * the number of columns is the total number of unique tokens across the descriptions
-    """
-    vz = vectorizer.fit_transform(all_desc.tolist())
-    print(vz.shape())
-    #  create a dictionary mapping the tokens to their tfidf values
-    tfidf = dict(zip(vectorizer.get_feature_names(), vectorizer.idf_))
-    tfidf = pd.DataFrame(columns=['tfidf']).from_dict(
-                        dict(tfidf), orient='index')
-    tfidf.columns = ['tfidf']
-    """
-    Below is the 10 tokens with the lowest tfidf score, which is unsurprisingly, very generic words that we could not 
-    use to distinguish one description from another.
-    """
-    print(tfidf.sort_values(by=['tfidf'], ascending=True).head(10))
-    """
-    Below is the 10 tokens with the highest tfidf score, which includes words that are a lot specific that by looking at
-    them, we could guess the categories that they belong to:
-    """
-    print(tfidf.sort_values(by=['tfidf'], ascending=False).head(10))
+    # all_desc = np.append(train['item_description'].values, test['item_description'].values)
+    # """"
+    # vz is a tfidf matrix where:
+    # * the number of rows is the total number of descriptions
+    # * the number of columns is the total number of unique tokens across the descriptions
+    # """
+    # vz = vectorizer.fit_transform(all_desc.tolist())
+    # print(vz.shape[0])
+    # print(vz.shape[1])
+    # #  create a dictionary mapping the tokens to their tfidf values
+    # tfidf = dict(zip(vectorizer.get_feature_names(), vectorizer.idf_))
+    # tfidf = pd.DataFrame(columns=['tfidf']).from_dict(
+    #                     dict(tfidf), orient='index')
+    # tfidf.columns = ['tfidf']
+    # """
+    # Below is the 10 tokens with the lowest tfidf score, which is unsurprisingly, very generic words that we could not
+    # use to distinguish one description from another.
+    # """
+    # print(tfidf.sort_values(by=['tfidf'], ascending=True).head(10))
+    # """
+    # Below is the 10 tokens with the highest tfidf score, which includes words that are a lot specific that by looking at
+    # them, we could guess the categories that they belong to:
+    # """
+    # print(tfidf.sort_values(by=['tfidf'], ascending=False).head(10))
     """
     Given the high dimension of our tfidf matrix, we need to reduce their dimension using the Singular Value Decomposit
     -ion (SVD) technique. And to visualize our vocabulary, we could next use t-SNE to reduce the dimension from 50 to 2. 
@@ -220,54 +224,48 @@ def descriptionShow(train, test):
     First, let's take a sample from the both training and testing item's description since t-SNE can take a very long time
     to execute. We can then reduce the dimension of each vector from to n_components (50) using SVD.
     """
+    trn = train.copy()
+    tst = test.copy()
+    trn['is_train'] = 1
+    tst['is_train'] = 0
 
+    sample_sz = 15000
 
+    combined_df = pd.concat([trn, tst])
+    combined_sample = combined_df.sample(n=sample_sz)
+    vz_sample = vectorizer.fit_transform(list(combined_sample['item_description']))
 
+    from sklearn.decomposition import TruncatedSVD
 
+    n_comp = 30
+    svd = TruncatedSVD(n_components=n_comp, random_state=42)
+    svd_tfidf = svd.fit_transform(vz_sample)
 
-    # """
+    # Now we can reduce the dimension from 50 to 2 using t-SNE!
+    from sklearn.manifold import TSNE
+    tsne_model = TSNE(n_components=2, verbose=1, random_state=42, n_iter=500)
 
+    tsne_tfidf = tsne_model.fit_transform(svd_tfidf)
 
+    """
+    It's now possible to visualize our data points. Note that the deviation as well as the size of the clusters imply little
+    information  in t-SNE.
+    """
+    output_notebook()
+    plot_tfidf = bp.figure(plot_width=700, plot_height=600,
+                           title="tf-idf clustering of the item description",
+                           tools="pan,wheel_zoom,box_zoom,reset,hover,previewsave",
+                           x_axis_type=None, y_axis_type=None, min_border=1)
+    combined_sample.reset_index(inplace=True, drop=True)
+    tfidf_df = pd.DataFrame(tsne_tfidf, columns=['x', 'y'])
+    tfidf_df['description'] = combined_sample['item_description']
+    tfidf_df['tokens'] = combined_sample['tokens']
+    tfidf_df['category'] = combined_sample['general_cat']
 
-    # trn = train.copy()
-    # tst = test.copy()
-    # trn['is_train'] = 1
-    # tst['is_train'] = 0
-    #
-    # sample_sz = 15000
-    #
-    # combined_df = pd.concat([trn, tst])
-    # combined_sample = combined_df.sample(n=sample_sz)
-    # vz_sample = vectorizer.fit_transform(list(combined_sample['item_description']))
-    #
-    #
-    #
-    # from sklearn.decomposition import TruncatedSVD
-    #
-    # n_comp=30
-    # svd = TruncatedSVD(n_components=n_comp, random_state=42)
-    # svd_tfidf = svd.fit_transform(vz_sample)
-    #
-    # # Now we can reduce the dimension from 50 to 2 using t-SNE!
-    # from sklearn.manifold import TSNE
-    # tsne_model = TSNE(n_components=2, verbose=1, random_state=42, n_iter=500)
-    #
-    # tsne_tfidf = tsne_model.fit_transform(svd_tfidf)
-    #
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    plot_tfidf.scatter(x='x', y='y', source=tfidf_df, alpha=0.7)
+    hover = plot_tfidf.select(dict(type=HoverTool))
+    hover.tooltips = {"description": "@description", "tokens": "@tokens", "category": "@category"}
+    show(plot_tfidf)
 
 
 def wordCount(text):
